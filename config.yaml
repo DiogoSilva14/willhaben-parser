@@ -1,0 +1,6 @@
+# Configuration for parser
+interval: 1
+# Email for sending notifications
+sender_email:
+  email: "tio@gmail.com"
+  token: "AAAAAAAAAAA"

@@ -1,58 +1,41 @@
+mod db_consumer;
 mod parser_config;
+mod scraper_parser;
 
+use crate::db_consumer::DBParser;
 use crate::parser_config::get_parser_config;
-use debug_print::debug_println;
-use reqwest;
-use scraper::{Html, Selector};
-use serde::Deserialize;
+use crate::scraper_parser::get_adverts;
+use log::{debug, error, info};
 use std::process::ExitCode;
-
-const WILLHABEN_WOHNUNG_URL: &str = "https://www.willhaben.at/iad/immobilien/mietwohnungen/wien";
-
-#[derive(Debug, Deserialize)]
-struct HtmlBody {
-    treeType: String,
-}
 
 #[tokio::main]
 async fn main() -> ExitCode {
-    let config = match get_parser_config() {
-        Ok(settings) => settings,
-        Err(error) => {
-            println!(
-                "Failed to parse the configuration file with error: {}",
-                error
-            );
-            return ExitCode::from(ExitCode::FAILURE);
-        }
-    };
+    env_logger::init();
 
-    println!("Sucessfully loaded config file!");
+    debug!("Starting...");
 
-    debug_println!("{:?}", config);
+    //    let config = match get_parser_config() {
+    //        Ok(settings) => settings,
+    //        Err(error) => {
+    //            error!(
+    //                "Failed to parse the configuration file with error: {}",
+    //                error
+    //            );
+    //            return ExitCode::from(ExitCode::FAILURE);
+    //        }
+    //    };
+    //
+    //    info!("Sucessfully loaded config file!");
+    //    debug!("{:?}", config);
 
-    let client = reqwest::Client::new();
+    let db = DBParser::new();
 
-    let params = [("rows", 90)];
-
-    let body_html = client
-        .get(WILLHABEN_WOHNUNG_URL)
-        .query(&params)
-        .send()
-        .await
-        .unwrap()
-        .text()
-        .await
-        .unwrap();
-
-    let data: String = Html::parse_document(body_html.as_str())
-        .select(&Selector::parse("#__NEXT_DATA__").unwrap())
-        .next()
-        .unwrap()
-        .text()
-        .collect::<String>();
-
-    println!("{}", data);
+    //    let search_result = get_adverts(&config).await;
+    //
+    //    info!(
+    //        "Got {} results",
+    //        search_result.advert_summary_list.advert_summary.len()
+    //    );
 
     ExitCode::SUCCESS
 }

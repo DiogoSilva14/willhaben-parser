@@ -1,6 +1,16 @@
 # Configuration for parser
 interval: 1
+
 # Email for sending notifications
 sender_email:
   email: "tio@gmail.com"
   token: "AAAAAAAAAAA"
+
+# Criteria for searching apartments
+# Min and max is optional
+search_criteria:
+  area:
+    min: 30
+  price:
+    min: 500
+    max: 2000

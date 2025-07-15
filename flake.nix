@@ -14,7 +14,13 @@
           cargo 
           pkg-config
           openssl
+          sqlite
         ];
       };
+      shellHook = ''
+        export OPENSSL_STATIC=1
+        export OPENSSL_LIB_DIR="${pkgs.openssl}/lib"
+        export OPENSSL_INCLUDE_DIR="${pkgs.openssl}/include"
+      '';
     };
 }

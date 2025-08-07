@@ -1,4 +1,5 @@
 use config::{Config, ConfigError};
+use log::{info, warn};
 use serde::Deserialize;
 use std::collections::HashMap;
 
@@ -38,7 +39,7 @@ impl SearchCriteria {
                         map.insert("ESTATE_SIZE/LIVING_AREA_FROM".to_string(), min.to_string());
                     }
                     None => {
-                        println!("Minimum area was not specified")
+                        warn!("Minimum area was not specified")
                     }
                 }
                 match &criteria.max {
@@ -46,12 +47,12 @@ impl SearchCriteria {
                         map.insert("ESTATE_SIZE/LIVING_AREA_TO".to_string(), max.to_string());
                     }
                     None => {
-                        println!("Maximum area was not specified")
+                        warn!("Maximum area was not specified")
                     }
                 }
             }
             None => {
-                println!("Area criteria was not specified")
+                warn!("Area criteria was not specified")
             }
         }
 
@@ -62,7 +63,7 @@ impl SearchCriteria {
                         map.insert("PRICE_FROM".to_string(), min.to_string());
                     }
                     None => {
-                        println!("Minimum price was not specified")
+                        warn!("Minimum price was not specified")
                     }
                 }
                 match &criteria.max {
@@ -70,12 +71,12 @@ impl SearchCriteria {
                         map.insert("PRICE_TO".to_string(), max.to_string());
                     }
                     None => {
-                        println!("Maximum price was not specified")
+                        warn!("Maximum price was not specified")
                     }
                 }
             }
             None => {
-                println!("Price criteria was not specified")
+                warn!("Price criteria was not specified")
             }
         }
 
@@ -84,6 +85,8 @@ impl SearchCriteria {
 }
 
 pub fn get_parser_config() -> Result<ParserConfig, ConfigError> {
+    info!("Retrieving parser configuration");
+
     Config::builder()
         .add_source(config::File::with_name("config.yaml"))
         .build()

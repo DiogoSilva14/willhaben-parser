@@ -15,6 +15,7 @@
           pkg-config
           openssl
           sqlite
+          linuxPackages_latest.perf
         ];
       };
       shellHook = ''

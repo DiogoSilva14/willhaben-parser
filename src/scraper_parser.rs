@@ -1,15 +1,15 @@
 use crate::parser_config::ParserConfig;
-use log::{debug, error, info};
+use log::{debug, info};
 use reqwest;
 use scraper::{Html, Selector};
 use serde::Deserialize;
-use std::{collections::HashMap, process::ExitCode};
+use serde::{Deserialize, Serialize};
 
 const WILLHABEN_WOHNUNG_URL: &str = "https://www.willhaben.at/iad/immobilien/mietwohnungen/wien";
 
 const DEFAULT_PARAMS: [(&str, &str); 5] = [
     // Max value
-    ("rows", "1"),
+    ("rows", "200"),
     // AreaID for Wien
     ("areaId", "900"),
     // Property types
@@ -68,8 +68,39 @@ pub struct Attr {
     pub values: Vec<String>,
 }
 
-pub async fn get_adverts(config: &ParserConfig) -> Vec<Advert> {
-    let client = reqwest::Client::new();
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Apartment {
+    id: u64,
+    description: String,
+    coordinates: Option<String>,
+    published: Option<u64>,
+    floor: Option<String>,
+    rooms: Option<u32>,
+    size: Option<u32>,
+    postcode: Option<u32>,
+    price: Option<f32>,
+    url: Option<String>,
+}
+
+impl Default for Apartment {
+    fn default() -> Apartment {
+        Apartment {
+            id: 0,
+            description: String::new(),
+            coordinates: (None),
+            published: (None),
+            floor: (None),
+            rooms: (None),
+            size: (None),
+            postcode: (None),
+            price: (None),
+            url: (None),
+        }
+    }
+}
+
+pub fn get_adverts(config: &ParserConfig) -> Vec<Advert> {
+    let client = reqwest::blocking::Client::new();
     let mut params_hashmap = config.search_criteria.to_hashmap();
     let mut search_result: SearchResult = SearchResult {
         id: 0,
@@ -81,6 +112,8 @@ pub async fn get_adverts(config: &ParserConfig) -> Vec<Advert> {
     };
     let mut page_id: u32 = 1;
 
+    info!("Retrieving adverts");
+
     debug!("Adding default parameters: {:?}", DEFAULT_PARAMS);
 
     for param in DEFAULT_PARAMS {
@@ -90,16 +123,16 @@ pub async fn get_adverts(config: &ParserConfig) -> Vec<Advert> {
     debug!("Parameters for request: {:?}", params_hashmap);
 
     loop {
+        info!("Requesting page {}", page_id);
+
         params_hashmap.insert("page".to_string(), page_id.to_string());
 
         let body_html = client
             .get(WILLHABEN_WOHNUNG_URL)
             .query(&params_hashmap)
             .send()
-            .await
             .unwrap()
             .text()
-            .await
             .unwrap();
 
         let data: String = Html::parse_document(body_html.as_str())
@@ -138,9 +171,9 @@ pub async fn get_adverts(config: &ParserConfig) -> Vec<Advert> {
         }
 
         page_id += 1;
-        // DEBUG
-        break;
     }
+
+    info!("Finished retrieving adverts");
 
     search_result.advert_summary_list.advert_summary
 }

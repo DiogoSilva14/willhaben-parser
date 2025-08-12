@@ -1,6 +1,7 @@
 use crate::scraper_parser::{Advert, Apartment};
 use log::{debug, error, info};
 use rusqlite::{Connection, Error, Result};
+use std::collections::HashMap;
 use std::fmt;
 
 #[derive(PartialEq)]
@@ -22,7 +23,7 @@ impl fmt::Display for TableType {
 }
 
 #[derive(PartialEq)]
-enum TransactionType {
+pub enum TransactionType {
     Insert,
     Delete,
     Update,
@@ -44,9 +45,57 @@ impl TransactionType {
     }
 }
 
+pub struct TransactionEntry {
+    pub id: u64,
+    pub r#type: TransactionType,
+    pub field: Option<String>,
+    pub old_value: Option<String>,
+    pub new_value: Option<String>,
+}
+
 #[derive(Debug)]
 pub struct DBParser {
     conn: Connection,
+}
+pub fn get_db_hashmap() -> rusqlite::Result<HashMap<u64, Apartment>> {
+    let conn = Connection::open("./.db")?;
+    let mut stmt = conn.prepare(
+        "
+        SELECT
+            id,
+            description,
+            coordinates,
+            published,
+            floor,
+            rooms,
+            size,
+            postcode,
+            price,
+            url
+        FROM apartments",
+    )?;
+
+    let apartments = stmt
+        .query_map([], |row| {
+            Ok(Apartment {
+                id: row.get(0)?,
+                description: row.get(1)?,
+                coordinates: row.get(2)?,
+                published: row.get(3)?,
+                floor: row.get(4)?,
+                rooms: row.get(5)?,
+                size: row.get(6)?,
+                postcode: row.get(7)?,
+                price: row.get(8)?,
+                url: row.get(9)?,
+            })
+        })?
+        .collect::<Result<Vec<Apartment>, rusqlite::Error>>()?;
+
+    Ok(apartments
+        .into_iter()
+        .map(|apart| (apart.id, apart))
+        .collect())
 }
 
 impl DBParser {
@@ -61,9 +110,8 @@ impl DBParser {
 
         db.conn
             .execute(
-                format!(
-                    "
-                 CREATE TABLE IF NOT EXISTS {}
+                "
+                 CREATE TABLE IF NOT EXISTS apartments
                  (id INTEGER PRIMARY KEY,
                  description TEXT,
                  coordinates TEXT,
@@ -75,41 +123,14 @@ impl DBParser {
                  price REAL,
                  url TEXT)
             ",
-                    TableType::NewEntries
-                )
-                .as_str(),
                 (),
             )
             .unwrap();
 
         db.conn
             .execute(
-                format!(
-                    "
-                 CREATE TABLE IF NOT EXISTS {}
-                 (id INTEGER PRIMARY KEY,
-                 description TEXT,
-                 coordinates TEXT,
-                 published INTEGER,
-                 floor TEXT,
-                 rooms INTEGER,
-                 size INTEGER,
-                 postcode INTEGER,
-                 price REAL,
-                 url TEXT)
-            ",
-                    TableType::CurrentEntries
-                )
-                .as_str(),
-                (),
-            )
-            .unwrap();
-
-        db.conn
-            .execute(
-                format!(
-                    "
-                 CREATE TABLE IF NOT EXISTS {}
+                "
+                 CREATE TABLE IF NOT EXISTS transaction_log
                  (date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                  id INTEGER,
                  type TEXT,
@@ -117,9 +138,6 @@ impl DBParser {
                  old_value TEXT,
                  new_value TEXT)
             ",
-                    TableType::TransactionLog
-                )
-                .as_str(),
                 (),
             )
             .unwrap();

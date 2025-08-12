@@ -4,7 +4,7 @@ mod scraper_parser;
 
 use crate::db_consumer::DBParser;
 use crate::parser_config::get_parser_config;
-use crate::scraper_parser::get_adverts;
+use crate::scraper_parser::{adverts_to_aparts, get_adverts, update_database};
 use clap::Parser;
 use env_logger::Builder;
 use log::{LevelFilter, debug, error, info};
@@ -52,9 +52,11 @@ fn main() -> ExitCode {
         loop {
             let db = DBParser::new();
             let adverts = get_adverts(&config);
+            let apartments = adverts_to_aparts(adverts);
+            update_database(apartments);
 
-            db.consume_adverts(&adverts);
-            db.process();
+            //            db.consume_adverts(&adverts);
+            //            db.process();
 
             thread::sleep(time::Duration::from_secs(20));
         }
